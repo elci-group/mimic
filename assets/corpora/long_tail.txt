@@ -1,0 +1,42 @@
+# Long-tail dynamic-content corpus: names, numbers, dates, addresses.
+# Deliberately low cache overlap — stress-tests the synthesis path.
+hello sarah your order number is 48291
+hello marcus your order number is 71023
+hello priya your appointment is on march 14 at 2 30 pm
+hello diego your appointment is on june 27 at 9 15 am
+your tracking number is 1z999aa10123456784
+your tracking number is 9400 1000 0000 0000 0000 00
+the verification code is 5 7 3 9 1 2
+the verification code is 0 4 2 8 6 6
+your flight ba 2490 departs at 18 45 from gate c 12
+your flight lh 717 departs at 06 20 from gate a 4
+mr kowalski your prescription is ready for pickup
+ms okafor your test results are available
+dr nakamura will see you at 11 30
+the total due is 134 dollars and 56 cents
+the total due is 89 dollars and 99 cents
+your new balance is 2 407 dollars and 13 cents
+the meeting is rescheduled to february 29 at 16 00
+the meeting room is shackleton on the 4th floor
+your delivery arrives thursday between 8 am and noon
+your delivery arrives monday between 13 00 and 17 00
+the reference number is ax 88 41 zq
+the reference number is qz 19 77 mk
+please call us back at 555 0134
+please call 800 555 2299 for claims
+your seat is 14 a in row 14
+your seat is 22 f in row 22
+the wifi password is correct horse battery staple
+the confirmation code is bravo tango 7 3 9
+mr fitzwilliam your car is ready
+ms delacroix your table for two is at 19 30
+the temperature tomorrow will be 23 degrees
+expect rain on saturday with a high of 17 degrees
+your library book is due back on april 3
+the package was left with neighbour at number 42
+platform 9 for the 15 27 service to edinburgh
+the 8 05 service to bristol is delayed by 12 minutes
+your hotel room is 1207 on the twelfth floor
+check in opens at 14 00 on the day of arrival
+the serial number is sn 8842 0061 337
+your insurance policy number is pl 556 89 01

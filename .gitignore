@@ -1,0 +1,9 @@
+/target/
+/eval/reports/
+/.kaptaind/
+/.fract/
+.env
+*.pad
+*.audio/
+*.wav
+

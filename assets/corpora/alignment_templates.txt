@@ -1,0 +1,44 @@
+# Alignment-gate templates. {n} is expanded with deterministic numbers by
+# the eval harness (13 expansions per template => 500+ clips) so boundary
+# error can be measured against MockTts ground truth at scale.
+your code is {n}
+the number is {n}
+order {n} is ready
+please confirm {n} now
+the total is {n} dollars
+account {n} balance
+ticket {n} confirmed
+ref {n} recorded
+your pin is {n}
+the gate is {n}
+room {n} is booked
+seat {n} assigned
+batch {n} shipped
+invoice {n} paid
+case {n} closed
+your otp is {n}
+extension {n} please
+box {n} is empty
+row {n} selected
+item {n} sold
+the serial is {n}
+version {n} installed
+channel {n} active
+port {n} open
+level {n} unlocked
+page {n} printed
+copy {n} filed
+form {n} signed
+line {n} busy
+zone {n} restricted
+unit {n} online
+sensor {n} active
+valve {n} closed
+pump {n} running
+motor {n} stopped
+alarm {n} muted
+light {n} on
+door {n} locked
+window {n} open
+key {n} accepted
+card {n} declined

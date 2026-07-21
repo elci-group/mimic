@@ -1,0 +1,14 @@
+# Multilingual spot-check corpus. CMUdict covers English only;
+# non-English words exercise the G2P fallback path (letter expansion).
+hello how are you
+bonjour comment allez vous
+hola como estas
+guten tag wie geht es ihnen
+your reservation para dos personas is confirmed
+the rendezvous is at noon
+merci beaucoup have a great day
+gracias por llamar acme support
+your order numero cinco is ready
+the schadenfreude episode was notable
+ciao see you tomorrow
+we support english spanish french and german

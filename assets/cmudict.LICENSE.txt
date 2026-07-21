@@ -1,0 +1,4 @@
+cmudict.dict — CMU Pronouncing Dictionary
+Source: https://github.com/cmusphinx/cmudict
+License: BSD 2-Clause. Copyright Carnegie Mellon University.
+Used for ARPAbet grapheme-to-phoneme lookup at ingest time.

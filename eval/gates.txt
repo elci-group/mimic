@@ -1,0 +1,9 @@
+# Mimic P1–P4 exit gates. key = value, # comments.
+# The eval harness fails --gate when current-mode results miss these.
+boundary_median_ms_max = 20
+boundary_p90_ms_max = 60
+replay_coverage_min_pct = 80
+longtail_coverage_min_pct = 81.5
+storage_ratio_min = 10
+stoi_min = 0.95
+voice_fidelity_min = 0.90

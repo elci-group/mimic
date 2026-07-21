@@ -1,0 +1,62 @@
+# Repetitive customer-support / voice-agent corpus (Zipf head).
+# One utterance per line. # comments and blank lines are ignored.
+hello thank you for contacting acme support
+thank you for calling acme support my name is sam
+thank you for calling acme support how can i help you today
+thank you for contacting acme support this call may be recorded
+how can i help you today
+how can i help you
+i can help you with that
+i can help you with that today
+let me look that up for you
+let me check that for you right away
+one moment please while i check that for you
+please hold for one moment
+please hold while i transfer you
+thank you for holding
+thank you for your patience
+your call is important to us
+your order number is ready
+your order number is on its way
+your order number has been confirmed
+your confirmation number is being emailed to you
+your account balance is available
+your payment has been processed successfully
+your appointment is confirmed
+your appointment has been scheduled
+is there anything else i can help you with
+is there anything else i can help you with today
+is there anything else i can do for you
+can i help you with anything else
+have a great day
+thank you have a great day
+goodbye and have a great day
+we are sorry for the inconvenience
+we apologize for the inconvenience
+i am sorry to hear that
+i understand your frustration
+let me transfer you to a specialist
+let me transfer you to the billing department
+i will transfer you now
+please stay on the line
+your estimated wait time is five minutes
+you are next in the queue
+all of our agents are currently busy
+for quality assurance this call may be monitored
+to hear these options again press nine
+to return to the main menu press star
+you can find more information on our website
+that information is on its way to your email
+i have sent a confirmation email
+a confirmation email has been sent to you
+your refund has been issued
+your refund will appear in three to five business days
+the refund has been processed
+your subscription has been renewed
+your subscription has been cancelled
+your password reset link has been sent
+welcome back to acme support
+welcome to acme support
+this is acme support speaking
+you have reached acme support
+acme support how may i direct your call
