@@ -1,0 +1,5 @@
+bind = "127.0.0.1:17844"
+# Empty means reuse server.auth_token from ~/.config/voxd/config.toml.
+auth_token = ""
+state_dir = "~/.local/share/mimic"
+runtime_dir = "~/.local/share/mimic/run"

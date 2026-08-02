@@ -1,14 +1,14 @@
-# Mimic — Roadmap to State of the Art
+# Mimic — measured capability roadmap
 
 This roadmap takes Mimic from the v1 prototype (word-level PCM cache,
-character-proportional segmentation, crossfade splicing) to a state-of-the-art
+character-proportional segmentation, crossfade splicing) toward a measured
 **semantic-aware TTS output cache with sub-word acoustic recomposition** —
 in the endgame, an *acoustic CDN for AI agents*.
 
-## 1. What "SOTA" means here (the measurable bar)
+## 1. The measurable bar
 
-Mimic is not a TTS model; it is infrastructure *around* TTS models. SOTA is
-therefore a compound claim, measured against three baselines on a fixed
+Mimic is not a TTS model; it is infrastructure *around* TTS models. Capability is
+therefore measured against three baselines on a fixed
 benchmark suite (§6):
 
 | Metric | Target | Baseline to beat |
@@ -20,8 +20,8 @@ benchmark suite (§6):
 | Voice consistency (SECS speaker-embedding cosine across sessions) | ≥0.95 | provider re-generation: 0.85–0.92 |
 | Intelligibility (Whisper WER on composed audio) | ≤ provider-direct WER + 0.5% abs | provider-direct |
 
-A claim of SOTA is only valid with the §6 harness green against all three
-baselines. No harness, no claims — this is why P1 comes first.
+Any performance claim is only valid with the §6 harness green against all three
+baselines. No harness, no claim — this is why P1 comes first.
 
 ## 2. Where v1 stands
 
@@ -51,9 +51,9 @@ no evaluation beyond unit tests.
 - **Semantic caches** (GPTCache et al.): text-level; Mimic's differentiator is
   operating on *acoustic* primitives with prosody/context metadata.
 
-Mimic's moat: nobody ships a general, provider-agnostic, sub-word acoustic
-recomposition cache with a graph/vector database backing. The pieces exist;
-the integrated system does not.
+Mimic's differentiator is a provider-agnostic, sub-word acoustic recomposition
+cache backed by a graph/vector database. Its relative performance remains a
+benchmark question, not a marketing assertion.
 
 ## 4. Phases
 
@@ -192,11 +192,11 @@ Original plan for reference:
 
 ## 5. Critical path & parallelization
 
-P1 → everything (no SOTA claims without the harness). P2 ∥ P1. P3 and P4 are
+P1 → everything (no performance claims without the harness). P2 ∥ P1. P3 and P4 are
 independent and can run in parallel; P5 needs both. P6 builds on P4's
-storage layer. Fastest credible "SOTA-adjacent" demo: P1+P2+P4 ≈ 3 months.
+storage layer. Earliest integrated capability demo: P1+P2+P4 ≈ 3 months.
 
-## 6. Evaluation harness (the SOTA proof)
+## 6. Evaluation harness (the evidence)
 
 - **Corpora**: (a) repetitive support/agent corpus (Zipf head), (b) long-tail
   dynamic content (names, numbers, dates), (c) multilingual set, (d) an
@@ -232,8 +232,8 @@ the cache architecture and the unit-selection/stitching stack, not models.
 
 ## References
 
-- [CodeSOTA — Best open-source TTS models 2026](https://www.codesota.com/speech/best-open-source) (Sesame CSM, Fish S2 Pro, Orpheus, Kokoro MOS/rankings)
-- [CodeSOTA — TTS vendors 2026](https://www.codesota.com/speech/tts-vendors) (ElevenLabs Turbo/Flash, Cartesia Sonic 2, Gemini 2.5 TTS latency/MOS bar)
+- [Industry survey — open-source TTS models 2026](https://www.codesota.com/speech/best-open-source) (Sesame CSM, Fish S2 Pro, Orpheus, Kokoro MOS/rankings)
+- [Industry survey — TTS vendors 2026](https://www.codesota.com/speech/tts-vendors) (ElevenLabs Turbo/Flash, Cartesia Sonic 2, Gemini 2.5 TTS latency/MOS bar)
 - [gigagpu — Best TTS models 2026](https://gigagpu.com/best-tts-models-2026/) (F5-TTS, XTTS v2, StyleTTS 2 self-host tiers)
 - [Local AI Master — Best local TTS 2026](https://localaimaster.com/blog/best-local-tts-models) (Kokoro-82M, Chatterbox licensing/quality)
 - [F5-TTS paper (arXiv:2410.06885)](https://arxiv.org/html/2410.06885v3) (flow-matching DiT TTS; infill capability relevant to P5)

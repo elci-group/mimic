@@ -1,0 +1,9 @@
+segments:
+  - name: speech_platform_engineers
+    description: "Engineers operating latency-sensitive speech infrastructure"
+    pains: ["repeated provider synthesis", "opaque cache behavior", "voice drift"]
+narratives:
+  - capability: "acoustic reuse"
+    narrative: "serve verified speech fragments before requesting new synthesis"
+    audiences: [speech_platform_engineers]
+    formats: [docs, benchmark_report, demo]

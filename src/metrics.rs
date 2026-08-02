@@ -45,7 +45,10 @@ fn fft(re: &mut [f64], im: &mut [f64], inverse: bool) {
             let (mut cur_wr, mut cur_wi) = (1.0f64, 0.0f64);
             for k in 0..len / 2 {
                 let (a, b) = (i + k, i + k + len / 2);
-                let (tr, ti) = (re[b] * cur_wr - im[b] * cur_wi, re[b] * cur_wi + im[b] * cur_wr);
+                let (tr, ti) = (
+                    re[b] * cur_wr - im[b] * cur_wi,
+                    re[b] * cur_wi + im[b] * cur_wr,
+                );
                 re[b] = re[a] - tr;
                 im[b] = im[a] - ti;
                 re[a] += tr;

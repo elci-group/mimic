@@ -1,0 +1,12 @@
+traits: [precise, restrained, evidence_led]
+trait_signals:
+  precise: [measured, deterministic, verified]
+  restrained: [bounded, explicit, documented]
+  evidence_led: [benchmark, gate, report]
+style:
+  sentence_case_headings: true
+  max_exclamation_marks: 0
+  error_messages:
+    forbid_prefixes: ["ERROR", "Fatal"]
+    forbid_numeric_codes: false
+    require_actionable: true

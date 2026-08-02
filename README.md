@@ -1,6 +1,6 @@
 # Mimic
 
-A phonetic memoization layer for TTS: a semantic-aware speech cache with
+Mimic is a phonetic memoization layer for TTS: a semantic-aware speech cache with
 sub-word acoustic recomposition, backed by
 [padagonia](https://github.com/elci-group/padagonia) (graph + HNSW vector
 store).
@@ -40,6 +40,13 @@ curl -X POST localhost:8787/v1/audio/speech \
 # evaluate
 cargo run --release -- eval --gate
 ```
+
+For the hardened voxd integration, run `mimicd` on its loopback-only default.
+It returns immutable, checksummed symlink manifests before voxd makes any TTS
+call. The daemon never contacts a provider: voxd submits missing PCM spans only
+after `pv admit` accepts the required memory, and persistence is separately
+controlled by the storage admission result. Bearer authentication is mandatory;
+an empty `auth_token` in Mimic's config reuses voxd's existing server token.
 
 Unit wavs live in `<db>.audio/` (e.g. `demo.audio/`). The database is a
 single padagonia file; the HNSW index and exact-lookup map are rebuilt in
@@ -81,9 +88,9 @@ penalties) + `join` (0.5 × seam discontinuity + phonetic context mismatch)
 + λ 0.2/char for generation. The constants live at the top of
 `src/select.rs`.
 
-## v1 limitations / next steps
+## V1 limitations and next steps
 
-See [ROADMAP.md](ROADMAP.md) for the full phased plan to state of the art,
+See [ROADMAP.md](ROADMAP.md) for the full phased capability plan,
 with measurable gates per phase. The short version:
 
 - **P1 shipped**: CMUdict G2P (ARPAbet), phoneme-level units with
@@ -93,13 +100,14 @@ with measurable gates per phase. The short version:
   Next alignment step: real forced alignment (MFA/CTC) on human speech.
 - Embeddings are 64-dim handcrafted features (duration/RMS/ZCR/Goertzel
   bands + hashed char trigrams), not MFCCs or learned acoustic embeddings.
-- Only `MockTts` ships; `TtsProvider` is the seam for ElevenLabs/Gemini
-  clients. 16 kHz mono i16 PCM only.
+- The integration-grade path deliberately uses lossless 16 kHz mono i16 PCM.
+  The experimental MCT codec does not meet its P4 fidelity gate and is excluded
+  from voxd's production path.
 - Neural eval metrics (UTMOS/NISQA, Whisper WER, SECS) are an optional
   adapter (`scripts/eval_external.py`), skipped until the Python ML stack
   is installed.
-- No HTTP server, prosody transfer, or transition-model stitching yet
-  (the `follows` edges are the substrate for the latter).
+- No prosody transfer or transition-model stitching yet (the `follows` edges
+  are the substrate for the latter).
 
 ## Evaluation
 

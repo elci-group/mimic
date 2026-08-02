@@ -67,8 +67,8 @@ impl MimicStore {
 
     fn rebuild_indexes(&mut self) {
         let mut rows: Vec<(NodeId, Option<Vec<f32>>, UnitLevel, String)> = Vec::new();
-        for (id, node) in &self.store.nodes {
-            if self.store.string_table.resolve_label(node.label) != Some("AudioUnit") {
+        for (id, node) in self.store.nodes() {
+            if self.store.string_table().resolve_label(node.label) != Some("AudioUnit") {
                 continue;
             }
             let level = self
@@ -108,7 +108,7 @@ impl MimicStore {
         provider: &str,
     ) -> Result<NodeId> {
         std::fs::create_dir_all(&self.audio_dir)?;
-        let filename = format!("{}.wav", self.store.next_node_id);
+        let filename = format!("{}.wav", self.store.next_node_id());
         if write_wav {
             audio::write_wav(audio, self.audio_dir.join(&filename))?;
         }
@@ -131,8 +131,18 @@ impl MimicStore {
             ("text", Scalar::String(text.to_string())),
             ("level", Scalar::String(level.as_str().to_string())),
             ("phonemes", Scalar::String(phonemes.to_string())),
-            ("wav_path", Scalar::String(if write_wav { filename.clone() } else { String::new() })),
-            ("duration_ms", Scalar::I64(audio.duration_ms().round() as i64)),
+            (
+                "wav_path",
+                Scalar::String(if write_wav {
+                    filename.clone()
+                } else {
+                    String::new()
+                }),
+            ),
+            (
+                "duration_ms",
+                Scalar::I64(audio.duration_ms().round() as i64),
+            ),
             ("sample_rate", Scalar::I64(audio.sample_rate as i64)),
             ("rms", Scalar::F64(audio.rms())),
             (
@@ -140,6 +150,7 @@ impl MimicStore {
                 Scalar::F64(audio.zero_crossing_rate() * audio.sample_rate as f64 / 2.0),
             ),
             ("voice", Scalar::String(voice.to_string())),
+            ("cache_domain", Scalar::String(provider.to_string())),
             (
                 "context_prev",
                 Scalar::String(context_prev.unwrap_or("").to_string()),
@@ -151,11 +162,19 @@ impl MimicStore {
             ("voice_sig", Scalar::Embedding(voice_sig)),
         ];
         if let Some(t) = tokens {
-            props.push(("codec", Scalar::String(crate::codec::MimicMct.name().to_string())));
-            props.push(("frames", Scalar::I64(crate::codec::frames_for(audio.samples.len()) as i64)));
+            props.push((
+                "codec",
+                Scalar::String(crate::codec::MimicMct.name().to_string()),
+            ));
+            props.push((
+                "frames",
+                Scalar::I64(crate::codec::frames_for(audio.samples.len()) as i64),
+            ));
             props.push(("tokens", Scalar::Bytes(t)));
         }
-        let id = self.store.add_node("AudioUnit", props, Some(embedding.clone()), prov);
+        let id = self
+            .store
+            .add_node("AudioUnit", props, Some(embedding.clone()), prov);
         self.hnsw.insert(id, embedding);
         self.exact
             .entry((level, text.to_string()))
@@ -255,15 +274,20 @@ impl MimicStore {
     pub fn get_tokens(&self, id: NodeId) -> Result<Vec<u8>> {
         let node = self
             .store
-            .nodes
+            .nodes()
             .get(&id)
             .ok_or_else(|| MimicError::NotFound(format!("node {id}")))?;
         let kid = self
             .store
-            .string_table
+            .string_table()
             .key_id("tokens")
             .ok_or_else(|| MimicError::NotFound(format!("node {id} has no tokens")))?;
-        match node.properties.iter().find(|(k, _)| *k == kid).map(|(_, v)| v) {
+        match node
+            .properties
+            .iter()
+            .find(|(k, _)| *k == kid)
+            .map(|(_, v)| v)
+        {
             Some(Scalar::Bytes(b)) => Ok(b.clone()),
             _ => Err(MimicError::NotFound(format!("node {id} has no tokens"))),
         }
@@ -271,44 +295,49 @@ impl MimicStore {
 
     /// Voice signature embedding of a unit (native speaker-identity proxy).
     pub fn get_voice_sig(&self, id: NodeId) -> Option<Vec<f32>> {
-        let node = self.store.nodes.get(&id)?;
-        let kid = self.store.string_table.key_id("voice_sig")?;
-        match node.properties.iter().find(|(k, _)| *k == kid).map(|(_, v)| v) {
+        let node = self.store.nodes().get(&id)?;
+        let kid = self.store.string_table().key_id("voice_sig")?;
+        match node
+            .properties
+            .iter()
+            .find(|(k, _)| *k == kid)
+            .map(|(_, v)| v)
+        {
             Some(Scalar::Embedding(v)) => Some(v.clone()),
             _ => None,
         }
     }
 
     /// Storage accounting across all AudioUnit nodes: (inline token bytes,
-/// equivalent wav bytes at 44 + 2×samples). The P4 storage gate divides
-/// the second by the first.
-pub fn codec_storage(&self) -> (usize, usize) {
-    let mut tokens = 0usize;
-    let mut wav = 0usize;
-    for (id, node) in &self.store.nodes {
-        if self.store.string_table.resolve_label(node.label) != Some("AudioUnit") {
-            continue;
-        }
-        let dur_ms: f64 = self
-            .prop_string(*id, "duration_ms")
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(0.0);
-        wav += 44 + (dur_ms * 16.0) as usize * 2;
-        if let Some(kid) = self.store.string_table.key_id("tokens") {
-            if let Some(Scalar::Bytes(b)) = node
-                .properties
-                .iter()
-                .find(|(k, _)| *k == kid)
-                .map(|(_, v)| v)
-            {
-                tokens += b.len();
+    /// equivalent wav bytes at 44 + 2×samples). The P4 storage gate divides
+    /// the second by the first.
+    pub fn codec_storage(&self) -> (usize, usize) {
+        let mut tokens = 0usize;
+        let mut wav = 0usize;
+        for (id, node) in self.store.nodes() {
+            if self.store.string_table().resolve_label(node.label) != Some("AudioUnit") {
+                continue;
+            }
+            let dur_ms: f64 = self
+                .prop_string(*id, "duration_ms")
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(0.0);
+            wav += 44 + (dur_ms * 16.0) as usize * 2;
+            if let Some(kid) = self.store.string_table().key_id("tokens") {
+                if let Some(Scalar::Bytes(b)) = node
+                    .properties
+                    .iter()
+                    .find(|(k, _)| *k == kid)
+                    .map(|(_, v)| v)
+                {
+                    tokens += b.len();
+                }
             }
         }
+        (tokens, wav)
     }
-    (tokens, wav)
-}
 
-/// Record a per-voice aggregate node ("Voice DNA") for an ingested
+    /// Record a per-voice aggregate node ("Voice DNA") for an ingested
     /// utterance. Append-only like everything else: consumers use the node
     /// with the highest `samples` count for the voice.
     pub fn add_voice_dna(&mut self, voice: &str, audio: &WavAudio, provider: &str) -> NodeId {
@@ -337,14 +366,14 @@ pub fn codec_storage(&self) -> (usize, usize) {
     }
 
     pub fn get_node(&self, id: NodeId) -> Option<&Node> {
-        self.store.nodes.get(&id)
+        self.store.nodes().get(&id)
     }
 
     /// Read a property of a node as a display string, resolving keys through
     /// the padagonia string table.
     pub fn prop_string(&self, id: NodeId, key: &str) -> Option<String> {
-        let node = self.store.nodes.get(&id)?;
-        let kid = self.store.string_table.key_id(key)?;
+        let node = self.store.nodes().get(&id)?;
+        let kid = self.store.string_table().key_id(key)?;
         match node.properties.iter().find(|(k, _)| *k == kid)?.1 {
             Scalar::String(ref s) => Some(s.clone()),
             Scalar::I64(v) => Some(v.to_string()),
@@ -369,8 +398,8 @@ pub fn codec_storage(&self) -> (usize, usize) {
                 UnitLevel::Phoneme => s.phonemes += ids.len(),
             }
         }
-        s.total_nodes = self.store.nodes.len();
-        s.total_edges = self.store.edges.len();
+        s.total_nodes = self.store.nodes().len();
+        s.total_edges = self.store.edges().len();
         s
     }
 

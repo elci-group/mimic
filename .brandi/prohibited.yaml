@@ -1,0 +1,6 @@
+categories:
+  unsupported_claims: ["state of the art", "SOTA", "enterprise-grade", "revolutionary", "game-changing"]
+  generic_ai_language: ["delve", "unlock the power", "supercharge", "seamless"]
+severity:
+  unsupported_claims: error
+  generic_ai_language: warning

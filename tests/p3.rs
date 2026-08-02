@@ -9,7 +9,7 @@ use mimic::tts::{MockTts, TtsProvider};
 use mimic::units::UnitLevel;
 
 fn test_g2p() -> G2p {
-    G2p::from_str(include_str!("../assets/cmudict.dict"))
+    G2p::parse(include_str!("../assets/cmudict.dict"))
 }
 
 fn fresh_store() -> (tempfile::TempDir, MimicStore) {
@@ -37,9 +37,18 @@ fn diphone_inventory_at_ingest() {
 
     let ow_w = ms.lookup_exact(UnitLevel::Diphone, "OW+W");
     assert_eq!(ow_w.len(), 1, "cross-word diphone OW+W");
-    assert_eq!(ms.prop_string(ow_w[0], "context_prev").as_deref(), Some("L"));
-    assert_eq!(ms.prop_string(ow_w[0], "context_next").as_deref(), Some("ER1"));
-    assert_eq!(ms.prop_string(ow_w[0], "phonemes").as_deref(), Some("OW1 W"));
+    assert_eq!(
+        ms.prop_string(ow_w[0], "context_prev").as_deref(),
+        Some("L")
+    );
+    assert_eq!(
+        ms.prop_string(ow_w[0], "context_next").as_deref(),
+        Some("ER1")
+    );
+    assert_eq!(
+        ms.prop_string(ow_w[0], "phonemes").as_deref(),
+        Some("OW1 W")
+    );
 }
 
 #[test]
@@ -49,12 +58,24 @@ fn viterbi_prefers_word_hits_and_synthesizes_only_misses() {
     ingest_text(&mut ms, "the quick brown fox jumps", &g);
 
     let tts = MockTts::new();
-    let (_out, report) = compose_v3(&mut ms, &tts, "the quick red fox jumps", "default", Some(&g)).unwrap();
+    let (_out, report) = compose_v3(
+        &mut ms,
+        &tts,
+        "the quick red fox jumps",
+        "default",
+        Some(&g),
+    )
+    .unwrap();
     assert_eq!(tts.calls.lock().unwrap().as_slice(), &["red".to_string()]);
     let levels: Vec<UnitLevel> = report.hits.iter().map(|(_, l)| *l).collect();
     assert_eq!(
         levels,
-        vec![UnitLevel::Word, UnitLevel::Word, UnitLevel::Word, UnitLevel::Word],
+        vec![
+            UnitLevel::Word,
+            UnitLevel::Word,
+            UnitLevel::Word,
+            UnitLevel::Word
+        ],
         "known words resolve at word level: {:?}",
         report.hits
     );
@@ -71,7 +92,10 @@ fn viterbi_uses_diphone_chain_for_oov_word() {
     let (_out, report) = compose_v3(&mut ms, &tts, "helm", "default", Some(&g)).unwrap();
     // "helm" has no morpheme candidate in cache, but HH+EH, EH+L, L+M
     // diphones and HH/M phoneme edges all exist
-    assert!(tts.calls.lock().unwrap().is_empty(), "no synthesis expected");
+    assert!(
+        tts.calls.lock().unwrap().is_empty(),
+        "no synthesis expected"
+    );
     assert!(
         report
             .hits
@@ -108,7 +132,10 @@ fn viterbi_selects_context_matching_variant() {
         ms.prop_string(cat_after_the, "context_prev").as_deref(),
         Some("the")
     );
-    assert_eq!(ms.prop_string(cat_after_a, "context_prev").as_deref(), Some("a"));
+    assert_eq!(
+        ms.prop_string(cat_after_a, "context_prev").as_deref(),
+        Some("a")
+    );
 
     let tts = MockTts::new();
     let (_out, report) = compose_v3(&mut ms, &tts, "the cat sleeps", "default", Some(&g)).unwrap();

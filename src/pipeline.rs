@@ -200,7 +200,10 @@ pub(crate) fn segment_and_store_words(
 
     for (i, w) in words.iter().enumerate() {
         let span = spans[i];
-        let seg = WavAudio::new(audio.samples[span.start..span.end].to_vec(), audio.sample_rate);
+        let seg = WavAudio::new(
+            audio.samples[span.start..span.end].to_vec(),
+            audio.sample_rate,
+        );
         let prev = if i > 0 {
             Some(words[i - 1].as_str())
         } else {
@@ -407,8 +410,8 @@ pub fn compose(
             text: ptext,
             level: UnitLevel::Phrase,
         }));
-        for s in start + 1..start + len {
-            slots[s] = Some(None);
+        for slot in slots.iter_mut().skip(start + 1).take(len - 1) {
+            *slot = Some(None);
         }
     }
 
@@ -418,7 +421,11 @@ pub fn compose(
             continue;
         }
         let w = &words[i];
-        let prev = if i > 0 { Some(words[i - 1].as_str()) } else { None };
+        let prev = if i > 0 {
+            Some(words[i - 1].as_str())
+        } else {
+            None
+        };
         let next = words.get(i + 1).map(String::as_str);
 
         let word_hits = store.lookup_exact(UnitLevel::Word, w);
@@ -471,7 +478,11 @@ pub fn compose(
         let audio = tts.synthesize(&span_text, voice)?;
         tts_calls.push(span_text.clone());
         // the freshly generated words join the cache
-        let outer_prev = if i > 0 { Some(words[i - 1].as_str()) } else { None };
+        let outer_prev = if i > 0 {
+            Some(words[i - 1].as_str())
+        } else {
+            None
+        };
         let outer_next = words.get(j).map(String::as_str);
         let span_phonemes: Vec<Option<Vec<String>>> = match g2p {
             Some(g) => words[i..j].iter().map(|w| g.phonemes(w)).collect(),
@@ -495,8 +506,8 @@ pub fn compose(
             text: span_text,
             level: UnitLevel::Word,
         }));
-        for s in i + 1..j {
-            slots[s] = Some(None);
+        for slot in slots.iter_mut().take(j).skip(i + 1) {
+            *slot = Some(None);
         }
         i = j;
     }
@@ -504,10 +515,8 @@ pub fn compose(
     // --- finalize in speaking order
     let mut parts: Vec<Part> = Vec::with_capacity(n);
     for slot in slots.iter_mut() {
-        if let Some(p) = slot.take() {
-            if let Some(part) = p {
-                parts.push(part);
-            }
+        if let Some(Some(part)) = slot.take() {
+            parts.push(part);
         }
     }
     let mut report = ComposeReport {

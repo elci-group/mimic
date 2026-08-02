@@ -1,0 +1,8 @@
+.git
+.kaptaind
+target
+eval/reports
+*.pad
+*.wav
+*.audio
+.env

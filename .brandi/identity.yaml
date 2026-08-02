@@ -1,0 +1,12 @@
+product:
+  name: Mimic
+  tagline: "Deterministic acoustic reuse for speech systems"
+  mission: "Reduce repeated speech synthesis while preserving intelligibility, voice consistency, and operational control."
+  aliases: [mimicd]
+  former_names: []
+archetype: [engineer, guardian]
+terminology:
+  canonical:
+    cache: acoustic cache
+    provider_call: provider synthesis
+  banned_variants: {}

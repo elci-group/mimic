@@ -170,7 +170,10 @@ pub fn run_replay(
             let t1 = Instant::now();
             let _ = tts.synthesize(req, "default")?;
             direct_ms.push(t1.elapsed().as_secs_f64() * 1000.0);
-            let chars = units::tokenize(req).iter().map(|w| w.chars().count()).sum::<usize>();
+            let chars = units::tokenize(req)
+                .iter()
+                .map(|w| w.chars().count())
+                .sum::<usize>();
             sim_ms.push(SIM_CLOUD_BASE_MS + SIM_CLOUD_PER_CHAR_MS * chars as f64);
         }
         rep.coverage_pct = if rep.total_chars > 0 {
@@ -275,8 +278,15 @@ fn run_mode(
             let mut unresolved = 0usize;
             for u in &train {
                 let audio = tts_ingest.synthesize(u, "default")?;
-                let rep =
-                    ingest_with_options(&mut store, u, &audio, "default", tts_ingest.name(), opts, g2p)?;
+                let rep = ingest_with_options(
+                    &mut store,
+                    u,
+                    &audio,
+                    "default",
+                    tts_ingest.name(),
+                    opts,
+                    g2p,
+                )?;
                 unresolved += rep.unresolved_words.len();
             }
 
@@ -329,7 +339,11 @@ fn run_mode(
             } else {
                 0.0
             };
-            row.rtf = if out_secs > 0.0 { compose_wall / out_secs } else { 0.0 };
+            row.rtf = if out_secs > 0.0 {
+                compose_wall / out_secs
+            } else {
+                0.0
+            };
             row.mean_seam = if !eval.is_empty() {
                 seams / eval.len() as f64
             } else {
@@ -364,11 +378,15 @@ pub fn expand_templates(templates: &[String]) -> Vec<String> {
     for t in templates {
         for _ in 0..13 {
             // LCG -> digit string of length 3..=7
-            state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            state = state
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
             let len = 3 + (state >> 59) % 5;
             let mut digits = String::new();
             for _ in 0..len {
-                state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+                state = state
+                    .wrapping_mul(6364136223846793005)
+                    .wrapping_add(1442695040888963407);
                 digits.push((b'0' + ((state >> 33) % 10) as u8) as char);
             }
             out.push(units::normalize(&t.replace("{n}", &digits)));
@@ -470,12 +488,14 @@ pub fn run(corpora_dir: &Path, g2p: &G2p) -> Result<EvalReport> {
                     "external adapter: {}",
                     String::from_utf8_lossy(&out.stdout).trim()
                 )),
-                Err(e) => report.notes.push(format!("external adapter failed to run: {e}")),
+                Err(e) => report.notes.push(format!(
+                    "external adapter failed to run: {e}; install its dependencies and retry"
+                )),
             }
         } else {
             report
                 .notes
-                .push("MIMIC_EVAL_EXTERNAL=1 but scripts/eval_external.py missing".into());
+                .push("MIMIC_EVAL_EXTERNAL=1 but scripts/eval_external.py is missing; restore the script and try again, or disable the flag".into());
         }
     } else {
         report.notes.push(
@@ -526,16 +546,23 @@ pub fn check_gates(report: &EvalReport, gates_file: &Path) -> GateResult {
     }
     let b = &report.boundary;
     let mut messages = vec![
-        format!("boundary clips: {}, boundaries measured: {}", b.clips, b.boundaries),
+        format!(
+            "boundary clips: {}, boundaries measured: {}",
+            b.clips, b.boundaries
+        ),
         format!(
             "boundary median: {:.2} ms (gate ≤ {:.0} ms; v1-baseline median {:.2} ms)",
             b.median_ms, max_median, b.baseline_median_ms
         ),
-        format!("boundary p90: {:.2} ms (gate ≤ {:.0} ms), max {:.2} ms", b.p90_ms, max_p90, b.max_ms),
+        format!(
+            "boundary p90: {:.2} ms (gate ≤ {:.0} ms), max {:.2} ms",
+            b.p90_ms, max_p90, b.max_ms
+        ),
     ];
     let mut pass = b.boundaries > 0 && b.median_ms <= max_median && b.p90_ms <= max_p90;
     if b.boundaries == 0 {
-        messages.push("no boundaries measured — boundary gate cannot pass".into());
+        messages
+            .push("no boundaries measured — add valid clips and rerun the boundary gate".into());
     }
     if let Some(r) = &report.replay {
         messages.push(format!(
@@ -547,10 +574,10 @@ pub fn check_gates(report: &EvalReport, gates_file: &Path) -> GateResult {
         let lat_ok = r.p99_ms < r.simulated_cloud_p99_ms;
         if r.coverage_pct < min_coverage || !lat_ok {
             pass = false;
-            messages.push("replay gate FAILED (coverage or latency)".into());
+            messages.push("replay gate FAILED (coverage or latency); inspect replay metrics, optimize the failing leg, and try again".into());
         }
     } else {
-        messages.push("replay missing — replay gate cannot pass".into());
+        messages.push("replay missing — configure a replay corpus and try again".into());
         pass = false;
     }
     // P3/P4: long-tail coverage must clear v1's 66.5% by 15 points
@@ -566,35 +593,54 @@ pub fn check_gates(report: &EvalReport, gates_file: &Path) -> GateResult {
             ));
             if row.cache_hit_pct < min_longtail {
                 pass = false;
-                messages.push("long-tail coverage gate FAILED".into());
+                messages.push(
+                    "long-tail coverage gate FAILED; expand reusable coverage and try again".into(),
+                );
             }
         }
         None => {
-            messages.push("p4-current long_tail row missing — gate cannot pass".into());
+            messages
+                .push("p4-current long_tail row missing — generate the row and try again".into());
             pass = false;
         }
     }
     // P4 codec gates: storage ratio, STOI fidelity, voice fidelity
-    let p4: Vec<&ModeRow> = report.rows.iter().filter(|r| r.mode == "p4-current").collect();
+    let p4: Vec<&ModeRow> = report
+        .rows
+        .iter()
+        .filter(|r| r.mode == "p4-current")
+        .collect();
     if !p4.is_empty() {
         let tok: usize = p4.iter().map(|r| r.token_bytes).sum();
         let wav: usize = p4.iter().map(|r| r.wav_bytes).sum();
-        let ratio = if tok > 0 { wav as f64 / tok as f64 } else { 0.0 };
+        let ratio = if tok > 0 {
+            wav as f64 / tok as f64
+        } else {
+            0.0
+        };
         messages.push(format!(
             "codec storage: {} B tokens vs {} B wav-equivalent = {:.1}× (gate ≥ {:.0}×)",
             tok, wav, ratio, storage_ratio_min
         ));
         if tok == 0 || ratio < storage_ratio_min {
             pass = false;
-            messages.push("codec storage gate FAILED".into());
+            messages.push(
+                "codec storage gate FAILED; improve compression and try again before enabling the codec path"
+                    .into(),
+            );
         }
         let stoi_vals: Vec<f64> = p4.iter().filter_map(|r| r.stoi).collect();
         if !stoi_vals.is_empty() {
             let m = stoi_vals.iter().sum::<f64>() / stoi_vals.len() as f64;
-            messages.push(format!("codec STOI (fully-cached): {m:.3} (gate ≥ {stoi_min})"));
+            messages.push(format!(
+                "codec STOI (fully-cached): {m:.3} (gate ≥ {stoi_min})"
+            ));
             if m < stoi_min {
                 pass = false;
-                messages.push("codec STOI gate FAILED".into());
+                messages.push(
+                    "codec STOI gate FAILED; improve reconstruction and try again before enabling the codec path"
+                        .into(),
+                );
             }
         } else {
             messages.push("codec STOI: no fully-cached utterances — skipped".into());
@@ -602,16 +648,22 @@ pub fn check_gates(report: &EvalReport, gates_file: &Path) -> GateResult {
         let voice_vals: Vec<f64> = p4.iter().filter_map(|r| r.voice_fidelity).collect();
         if !voice_vals.is_empty() {
             let m = voice_vals.iter().sum::<f64>() / voice_vals.len() as f64;
-            messages.push(format!("voice fidelity (fully-cached): {m:.3} (gate ≥ {voice_min})"));
+            messages.push(format!(
+                "voice fidelity (fully-cached): {m:.3} (gate ≥ {voice_min})"
+            ));
             if m < voice_min {
                 pass = false;
-                messages.push("voice fidelity gate FAILED".into());
+                messages.push("voice fidelity gate FAILED; improve speaker preservation and try again before enabling the codec path".into());
             }
         } else {
             messages.push("voice fidelity: no fully-cached utterances — skipped".into());
         }
     }
-    messages.push(if pass { "GATE: PASS".into() } else { "GATE: FAIL".into() });
+    messages.push(if pass {
+        "GATE: PASS".into()
+    } else {
+        "GATE: FAIL".into()
+    });
     GateResult { pass, messages }
 }
 
@@ -658,11 +710,19 @@ pub fn to_markdown(report: &EvalReport) -> String {
             r.provider_profile
         ));
     }
-    let p4: Vec<&ModeRow> = report.rows.iter().filter(|r| r.mode == "p4-current").collect();
+    let p4: Vec<&ModeRow> = report
+        .rows
+        .iter()
+        .filter(|r| r.mode == "p4-current")
+        .collect();
     if !p4.is_empty() {
         let tok: usize = p4.iter().map(|r| r.token_bytes).sum();
         let wav: usize = p4.iter().map(|r| r.wav_bytes).sum();
-        let ratio = if tok > 0 { wav as f64 / tok as f64 } else { 0.0 };
+        let ratio = if tok > 0 {
+            wav as f64 / tok as f64
+        } else {
+            0.0
+        };
         let mean_opt = |vs: Vec<f64>| {
             if vs.is_empty() {
                 "n/a".to_string()

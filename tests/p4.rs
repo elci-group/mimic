@@ -28,7 +28,7 @@ fn tone(freq: f64, ms: f64) -> WavAudio {
 }
 
 fn test_g2p() -> G2p {
-    G2p::from_str(include_str!("../assets/cmudict.dict"))
+    G2p::parse(include_str!("../assets/cmudict.dict"))
 }
 
 #[test]
@@ -45,12 +45,17 @@ fn codec_roundtrip_high_fidelity() {
 fn codec_compression_ratio() {
     // 1s of tone + 1s of silence: tonal frames compress, silence is 1 B/frame
     let mut samples = tone(300.0, 1000.0).samples;
-    samples.extend(std::iter::repeat(0).take(SAMPLE_RATE as usize));
+    samples.extend(std::iter::repeat_n(0, SAMPLE_RATE as usize));
     let a = WavAudio::new(samples, SAMPLE_RATE);
     let tokens = MimicMct.encode(&a);
     let pcm_bytes = 44 + a.samples.len() * 2;
     let ratio = pcm_bytes as f64 / tokens.len() as f64;
-    assert!(ratio >= 10.0, "ratio {ratio} ({} -> {} B)", pcm_bytes, tokens.len());
+    assert!(
+        ratio >= 10.0,
+        "ratio {ratio} ({} -> {} B)",
+        pcm_bytes,
+        tokens.len()
+    );
 }
 
 #[test]
@@ -85,16 +90,30 @@ fn token_compose_matches_pcm_coverage() {
     let mut ms = MimicStore::open(dir.path().join("t.pad"), dir.path().join("t.audio")).unwrap();
     let g = test_g2p();
     let tts = MockTts::new();
-    let audio = tts.synthesize("the quick brown fox jumps", "default").unwrap();
+    let audio = tts
+        .synthesize("the quick brown fox jumps", "default")
+        .unwrap();
     // P4-style ingest: tokens inline, no wav files
-    ingest(&mut ms, "the quick brown fox jumps", &audio, "default", tts.name(), Some(&g)).unwrap();
+    ingest(
+        &mut ms,
+        "the quick brown fox jumps",
+        &audio,
+        "default",
+        tts.name(),
+        Some(&g),
+    )
+    .unwrap();
 
     // units carry inline tokens, and no wav files were written
     let first = ms.lookup_exact(UnitLevel::Word, "quick")[0];
     assert!(ms.get_tokens(first).is_ok());
-    assert!(!dir.path().join("t.audio").join(format!("{}.wav", first.0)).exists());
+    assert!(!dir
+        .path()
+        .join("t.audio")
+        .join(format!("{}.wav", first.0))
+        .exists());
     // but get_audio still serves audio by decoding tokens
-    assert!(ms.get_audio(first).unwrap().len() > 0);
+    assert!(!ms.get_audio(first).unwrap().is_empty());
 
     let tts2 = MockTts::new();
     let (out, report) = compose_v3_with_medium(
@@ -111,7 +130,9 @@ fn token_compose_matches_pcm_coverage() {
     assert_eq!(report.cached_chars, 16);
     assert!(out.peak() > 0);
     // and the decoded output is intelligible vs direct generation
-    let reference = tts2.synthesize("the quick red fox jumps", "default").unwrap();
+    let reference = tts2
+        .synthesize("the quick red fox jumps", "default")
+        .unwrap();
     let s = metrics::stoi(&reference, &out);
     assert!(s > 0.9, "STOI composed vs direct {s}");
 }

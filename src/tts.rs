@@ -47,8 +47,7 @@ fn envelope(i: usize, n: usize) -> f64 {
         g *= 0.5 * (1.0 - (std::f64::consts::PI * i as f64 / edge as f64).cos());
     }
     if i >= n - edge {
-        g *= 0.5
-            * (1.0 + (std::f64::consts::PI * (i - (n - edge)) as f64 / edge as f64).cos());
+        g *= 0.5 * (1.0 + (std::f64::consts::PI * (i - (n - edge)) as f64 / edge as f64).cos());
     }
     g
 }
@@ -98,9 +97,10 @@ impl TtsProvider for MockTts {
                 samples.push((s * envelope(i, n) * 0.35 * i16::MAX as f64) as i16);
             }
             // inter-word silence
-            samples.extend(
-                std::iter::repeat(0).take(SAMPLE_RATE as usize * GAP_MS as usize / 1000),
-            );
+            samples.extend(std::iter::repeat_n(
+                0,
+                SAMPLE_RATE as usize * GAP_MS as usize / 1000,
+            ));
         }
         Ok(WavAudio::new(samples, SAMPLE_RATE))
     }

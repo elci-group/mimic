@@ -54,7 +54,10 @@ fn http_response(content_type: &str, body: &[u8]) -> Vec<u8> {
 }
 
 fn tiny_wav_bytes() -> Vec<u8> {
-    mimic::audio::to_wav_bytes(&mimic::audio::WavAudio::new(vec![1, -1, 2, -2], SAMPLE_RATE))
+    mimic::audio::to_wav_bytes(&mimic::audio::WavAudio::new(
+        vec![1, -1, 2, -2],
+        SAMPLE_RATE,
+    ))
 }
 
 #[test]
@@ -74,9 +77,18 @@ fn provider_wire_openai() {
 #[test]
 fn provider_wire_elevenlabs() {
     // pcm_16000: raw s16le
-    let pcm: Vec<u8> = [10i16, -10, 20, -20].iter().flat_map(|s| s.to_le_bytes()).collect();
+    let pcm: Vec<u8> = [10i16, -10, 20, -20]
+        .iter()
+        .flat_map(|s| s.to_le_bytes())
+        .collect();
     let (base, rx) = canned_server(http_response("audio/pcm", &pcm));
-    let p = HttpProvider::new(ProviderKind::ElevenLabs, base, "xi-key", "eleven_multilingual_v2", "voice-id-1");
+    let p = HttpProvider::new(
+        ProviderKind::ElevenLabs,
+        base,
+        "xi-key",
+        "eleven_multilingual_v2",
+        "voice-id-1",
+    );
     let audio = p.synthesize("hi", "default").unwrap();
     assert_eq!(audio.samples, vec![10, -10, 20, -20]);
     assert_eq!(audio.sample_rate, SAMPLE_RATE);
@@ -108,20 +120,31 @@ fn provider_wire_cartesia() {
 #[test]
 fn provider_wire_gemini_base64() {
     // L16 PCM 24 kHz: 6 samples -> 4 after 3:2 decimation
-    let pcm24: Vec<u8> = [1i16, 2, 3, 4, 5, 6].iter().flat_map(|s| s.to_le_bytes()).collect();
+    let pcm24: Vec<u8> = [1i16, 2, 3, 4, 5, 6]
+        .iter()
+        .flat_map(|s| s.to_le_bytes())
+        .collect();
     let b64 = base64_encode(&pcm24);
     let body = format!(
         "{{\"candidates\":[{{\"content\":{{\"parts\":[{{\"inlineData\":{{\"mimeType\":\"audio/L16;rate=24000\",\"data\":\"{b64}\"}}}}]}}}}]}}"
     );
     let (base, rx) = canned_server(http_response("application/json", body.as_bytes()));
-    let p = HttpProvider::new(ProviderKind::Gemini, base, "g-key", "gemini-2.5-flash-preview-tts", "Kore");
+    let p = HttpProvider::new(
+        ProviderKind::Gemini,
+        base,
+        "g-key",
+        "gemini-2.5-flash-preview-tts",
+        "Kore",
+    );
     let audio = p.synthesize("hello", "default").unwrap();
     assert_eq!(audio.samples, vec![1, 2, 4, 5]);
     assert_eq!(audio.sample_rate, SAMPLE_RATE);
 
     let req = rx.recv().unwrap();
     assert!(
-        req.starts_with("POST /v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=g-key "),
+        req.starts_with(
+            "POST /v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=g-key "
+        ),
         "req: {req}"
     );
     assert!(req.contains("\"voiceName\":\"Kore\""));
@@ -135,15 +158,29 @@ fn base64_encode(data: &[u8]) -> String {
         let n = ((b[0] as u32) << 16) | ((b[1] as u32) << 8) | b[2] as u32;
         out.push(T[(n >> 18) as usize & 63] as char);
         out.push(T[(n >> 12) as usize & 63] as char);
-        out.push(if c.len() > 1 { T[(n >> 6) as usize & 63] as char } else { '=' });
-        out.push(if c.len() > 2 { T[n as usize & 63] as char } else { '=' });
+        out.push(if c.len() > 1 {
+            T[(n >> 6) as usize & 63] as char
+        } else {
+            '='
+        });
+        out.push(if c.len() > 2 {
+            T[n as usize & 63] as char
+        } else {
+            '='
+        });
     }
     out
 }
 
 #[test]
 fn provider_https_gives_clear_error() {
-    let p = HttpProvider::new(ProviderKind::OpenAi, "https://api.openai.com", "k", "m", "v");
+    let p = HttpProvider::new(
+        ProviderKind::OpenAi,
+        "https://api.openai.com",
+        "k",
+        "m",
+        "v",
+    );
     let err = p.synthesize("x", "default").unwrap_err().to_string();
     assert!(err.contains("http://"), "err: {err}");
 }
@@ -160,7 +197,10 @@ fn ssml_subset() {
         ]
     );
     // no tags: passthrough
-    assert_eq!(ssml::parse("plain text"), vec![Segment::Text("plain text".to_string())]);
+    assert_eq!(
+        ssml::parse("plain text"),
+        vec![Segment::Text("plain text".to_string())]
+    );
     // seconds + default break
     let s2 = ssml::parse("<speak>a<break time=\"2s\"/>b<break/>c</speak>");
     assert!(s2.contains(&Segment::Break(2000.0)));
@@ -179,7 +219,7 @@ fn server_end_to_end() {
     let state = Arc::new(AppState {
         store: Mutex::new(store),
         tts: mimic::tts::MockTts::new(),
-        g2p: G2p::from_str("hello HH AH0 L OW1\nworld W ER1 L D\nred R EH1 D\n"),
+        g2p: G2p::parse("hello HH AH0 L OW1\nworld W ER1 L D\nred R EH1 D\n"),
     });
 
     let rt = tokio::runtime::Runtime::new().unwrap();
@@ -226,7 +266,10 @@ fn server_end_to_end() {
     let http_get = |path: &str| -> (u16, Vec<u8>) {
         let mut stream = std::net::TcpStream::connect(addr).unwrap();
         stream
-            .write_all(format!("GET {path} HTTP/1.1\r\nHost: {addr}\r\nConnection: close\r\n\r\n").as_bytes())
+            .write_all(
+                format!("GET {path} HTTP/1.1\r\nHost: {addr}\r\nConnection: close\r\n\r\n")
+                    .as_bytes(),
+            )
             .unwrap();
         let mut raw = Vec::new();
         stream.read_to_end(&mut raw).unwrap();
@@ -245,7 +288,10 @@ fn server_end_to_end() {
     assert_eq!(s, 200);
 
     // openai-compatible shim: partial overlap -> headers show cache reuse
-    let (s, head, wav) = http_post("/v1/audio/speech", "{\"input\":\"hello red world\",\"voice\":\"default\"}");
+    let (s, head, wav) = http_post(
+        "/v1/audio/speech",
+        "{\"input\":\"hello red world\",\"voice\":\"default\"}",
+    );
     assert_eq!(s, 200);
     assert!(wav.starts_with(b"RIFF"), "wav body");
     assert!(head.contains("x-mimic-cache-hit-pct:"), "headers: {head}");
@@ -266,7 +312,10 @@ fn server_end_to_end() {
     assert!(stats.contains("\"words\":"), "{stats}");
 
     // SSML through the compose endpoint
-    let (s, _, wav2) = http_post("/v1/compose", "{\"text\":\"<speak>hello <break time=\\\"100ms\\\"/> world</speak>\"}");
+    let (s, _, wav2) = http_post(
+        "/v1/compose",
+        "{\"text\":\"<speak>hello <break time=\\\"100ms\\\"/> world</speak>\"}",
+    );
     assert_eq!(s, 200);
     assert!(wav2.starts_with(b"RIFF"));
 
@@ -283,9 +332,13 @@ fn replay_smoke() {
         support.push_str(&format!("head phrase number {i} for support\n"));
     }
     std::fs::write(corpora_dir.join("support_repetitive.txt"), support).unwrap();
-    std::fs::write(corpora_dir.join("long_tail.txt"), "unique tail one\ntail two here\n").unwrap();
+    std::fs::write(
+        corpora_dir.join("long_tail.txt"),
+        "unique tail one\ntail two here\n",
+    )
+    .unwrap();
 
-    let g = mimic::g2p::G2p::from_str("head HH EH1 D\nphrase F R EY1 Z\nnumber N AH1 M B ER0\nfor F AO1 R\nsupport S AH0 P AO1 R T\nunique Y UW0 N IY1 K\ntail T EY1 L\none W AH1 N\ntwo T UW1\nhere HH IY1 R\n");
+    let g = mimic::g2p::G2p::parse("head HH EH1 D\nphrase F R EY1 Z\nnumber N AH1 M B ER0\nfor F AO1 R\nsupport S AH0 P AO1 R T\nunique Y UW0 N IY1 K\ntail T EY1 L\none W AH1 N\ntwo T UW1\nhere HH IY1 R\n");
     let corpora = meval::load_corpora(&corpora_dir).unwrap();
     let rep = meval::run_replay(&corpora, &g, 120, "openai-tts").unwrap();
 

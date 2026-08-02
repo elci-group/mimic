@@ -57,11 +57,16 @@ struct Edge {
     text: String,
 }
 
+type DiphoneChain = (WavAudio, Option<Vec<u8>>, usize, Vec<NodeId>);
+
 /// Assemble diphone-chain audio for one word:
 /// [first half of p0] + diphone(p0,p1) + ... + [second half of p_last],
 /// substituting phoneme halves for any missing diphone. None if a required
 /// phoneme unit itself is missing.
-fn diphone_chain(store: &MimicStore, phonemes: &[String]) -> Option<(WavAudio, usize, Vec<NodeId>)> {
+fn diphone_chain(
+    store: &MimicStore,
+    phonemes: &[String],
+) -> Option<(WavAudio, usize, Vec<NodeId>)> {
     if phonemes.is_empty() {
         return None;
     }
@@ -160,7 +165,11 @@ fn join_cost(p: &Edge, e: &Edge, store: &MimicStore, words: &[String], g2p: Opti
     if e.audio.is_none() {
         return 0.0; // synth joins are generated coherently
     }
-    let mut c = if p.audio.is_none() { JOIN_AFTER_SYNTH } else { 0.0 };
+    let mut c = if p.audio.is_none() {
+        JOIN_AFTER_SYNTH
+    } else {
+        0.0
+    };
     if let (Some(a), Some(b)) = (&p.audio, &e.audio) {
         c += JOIN_ACOUSTIC_W * seam_discontinuity(a, b);
     }
@@ -225,7 +234,11 @@ fn build_edges(
         for start in 0..=(n - pw.len()) {
             if words[start..start + pw.len()] == pw[..] {
                 let audio = store.get_audio(ids[0])?;
-                let tokens = if token_mode { Some(tokens_of(ids[0])?) } else { None };
+                let tokens = if token_mode {
+                    Some(tokens_of(ids[0])?)
+                } else {
+                    None
+                };
                 edges.push(Edge {
                     start,
                     end: start + pw.len(),
@@ -254,7 +267,11 @@ fn build_edges(
                 level: UnitLevel::Word,
                 target: WORD_TARGET,
                 audio: Some(store.get_audio(id)?),
-                tokens: if token_mode { Some(tokens_of(id)?) } else { None },
+                tokens: if token_mode {
+                    Some(tokens_of(id)?)
+                } else {
+                    None
+                },
                 nodes: vec![id],
                 chars,
                 text: w.clone(),
@@ -287,17 +304,17 @@ fn build_edges(
         if let Some(g) = g2p {
             if let Some(phonemes) = g.phonemes(w) {
                 // (audio, tokens, gaps, nodes); decode failure drops the edge
-                let chain: Option<(WavAudio, Option<Vec<u8>>, usize, Vec<NodeId>)> = match medium {
+                let chain: Option<DiphoneChain> = match medium {
                     Medium::Pcm => diphone_chain(store, &phonemes)
                         .map(|(a, gaps, nodes)| (a, None, gaps, nodes)),
-                    Medium::Tokens => diphone_chain_tokens(store, &phonemes).and_then(
-                        |(s, gaps, nodes)| {
+                    Medium::Tokens => {
+                        diphone_chain_tokens(store, &phonemes).and_then(|(s, gaps, nodes)| {
                             crate::codec::MimicMct
                                 .decode(&s)
                                 .ok()
                                 .map(|a| (a, Some(s), gaps, nodes))
-                        },
-                    ),
+                        })
+                    }
                 };
                 if let Some((audio, tokens, gaps, nodes)) = chain {
                     edges.push(Edge {
@@ -435,8 +452,15 @@ pub fn compose_v3_with_medium(
         let span_text = words[w0..w1].join(" ");
         let audio = tts.synthesize(&span_text, voice)?;
         report.tts_calls.push(span_text.clone());
-        report.generated_chars += words[w0..w1].iter().map(|w| w.chars().count()).sum::<usize>();
-        let outer_prev = if w0 > 0 { Some(words[w0 - 1].as_str()) } else { None };
+        report.generated_chars += words[w0..w1]
+            .iter()
+            .map(|w| w.chars().count())
+            .sum::<usize>();
+        let outer_prev = if w0 > 0 {
+            Some(words[w0 - 1].as_str())
+        } else {
+            None
+        };
         let outer_next = words.get(w1).map(String::as_str);
         let span_phonemes: Vec<Option<Vec<String>>> = match g2p {
             Some(g) => words[w0..w1].iter().map(|w| g.phonemes(w)).collect(),
@@ -480,7 +504,10 @@ pub fn compose_v3_with_medium(
             // seam measured on the decoded output at each join offset
             let mut seams = Vec::new();
             let mut off = 0usize;
-            for fc in frame_counts.iter().take(frame_counts.len().saturating_sub(1)) {
+            for fc in frame_counts
+                .iter()
+                .take(frame_counts.len().saturating_sub(1))
+            {
                 off += fc * crate::codec::FRAME;
                 let w = out.sample_rate as usize / 100; // 10 ms
                 if off >= w && off + w <= out.samples.len() {

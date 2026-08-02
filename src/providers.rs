@@ -172,10 +172,7 @@ impl HttpProvider {
                     .map(|c| i16::from_le_bytes([c[0], c[1]]))
                     .collect();
                 // 24000 -> 16000: keep 2 of every 3 samples (documented crude)
-                let s16: Vec<i16> = s24
-                    .chunks_exact(3)
-                    .flat_map(|c| [c[0], c[1]])
-                    .collect();
+                let s16: Vec<i16> = s24.chunks_exact(3).flat_map(|c| [c[0], c[1]]).collect();
                 Ok(WavAudio::new(s16, SAMPLE_RATE))
             }
         }
@@ -193,7 +190,10 @@ impl TtsProvider for HttpProvider {
 
     fn synthesize(&self, text: &str, voice: &str) -> Result<WavAudio> {
         let (url, headers, body) = self.request(text, voice);
-        let h: Vec<(&str, &str)> = headers.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
+        let h: Vec<(&str, &str)> = headers
+            .iter()
+            .map(|(k, v)| (k.as_str(), v.as_str()))
+            .collect();
         let resp = http::post(&url, &h, &body, TIMEOUT)?;
         if resp.status != 200 {
             return Err(MimicError::Wav(format!(

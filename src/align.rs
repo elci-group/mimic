@@ -35,6 +35,10 @@ impl Span {
     pub fn len(&self) -> usize {
         self.end.saturating_sub(self.start)
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.start >= self.end
+    }
 }
 
 /// Proportional seed boundaries from weights (v1 math).

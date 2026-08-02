@@ -107,7 +107,9 @@ fn wav_response(audio: &WavAudio, rep: &ComposeReport) -> Response {
     );
     headers.insert(
         "x-mimic-seam",
-        format!("{:.4}", rep.mean_seam_discontinuity).parse().unwrap(),
+        format!("{:.4}", rep.mean_seam_discontinuity)
+            .parse()
+            .unwrap(),
     );
     (StatusCode::OK, headers, bytes).into_response()
 }
@@ -141,7 +143,10 @@ async fn compose_ep(State(s): State<Arc<AppState>>, Json(inp): Json<ComposeIn>) 
     }
 }
 
-async fn openai_speech(State(s): State<Arc<AppState>>, Json(inp): Json<OpenAiSpeechIn>) -> Response {
+async fn openai_speech(
+    State(s): State<Arc<AppState>>,
+    Json(inp): Json<OpenAiSpeechIn>,
+) -> Response {
     let voice = inp.voice.unwrap_or_else(|| "default".into());
     let mut store = s.store.lock().unwrap();
     match compose_ssml(&mut store, &s.tts, Some(&s.g2p), &inp.input, &voice) {

@@ -21,7 +21,10 @@ fn tone(freq: f64, ms: f64) -> WavAudio {
 fn wav_codec_roundtrip() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("t.wav");
-    let audio = WavAudio::new(vec![0, 1000, -1000, i16::MAX, i16::MIN, 12345, -23456], SAMPLE_RATE);
+    let audio = WavAudio::new(
+        vec![0, 1000, -1000, i16::MAX, i16::MIN, 12345, -23456],
+        SAMPLE_RATE,
+    );
     audio::write_wav(&audio, &path).unwrap();
     let back = audio::read_wav(&path).unwrap();
     assert_eq!(back, audio);
@@ -102,11 +105,22 @@ fn compose_reuses_cache_and_synthesizes_only_misses() {
     let mut ms = MimicStore::open(db, adir).unwrap();
 
     let tts1 = MockTts::new();
-    let full = tts1.synthesize("the quick brown fox jumps", "default").unwrap();
-    ingest(&mut ms, "the quick brown fox jumps", &full, "default", tts1.name(), None).unwrap();
+    let full = tts1
+        .synthesize("the quick brown fox jumps", "default")
+        .unwrap();
+    ingest(
+        &mut ms,
+        "the quick brown fox jumps",
+        &full,
+        "default",
+        tts1.name(),
+        None,
+    )
+    .unwrap();
 
     let tts2 = MockTts::new();
-    let (out, report) = compose(&mut ms, &tts2, "the quick red fox jumps", "default", None).unwrap();
+    let (out, report) =
+        compose(&mut ms, &tts2, "the quick red fox jumps", "default", None).unwrap();
 
     // only "red" was unknown: exactly one provider call for exactly that word
     assert_eq!(tts2.calls.lock().unwrap().as_slice(), &["red".to_string()]);
@@ -146,7 +160,10 @@ fn morpheme_fallback_segments_cached_word() {
     let tts2 = MockTts::new();
     let (out, report) = compose(&mut ms, &tts2, "run", "default", None).unwrap();
 
-    assert!(tts2.calls.lock().unwrap().is_empty(), "no synthesis expected");
+    assert!(
+        tts2.calls.lock().unwrap().is_empty(),
+        "no synthesis expected"
+    );
     assert!(
         report
             .hits

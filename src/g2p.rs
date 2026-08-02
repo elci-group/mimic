@@ -24,10 +24,10 @@ impl G2p {
     /// `(n)` pronunciation-variant suffixes — first variant wins).
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self> {
         let text = std::fs::read_to_string(path)?;
-        Ok(Self::from_str(&text))
+        Ok(Self::parse(&text))
     }
 
-    pub fn from_str(text: &str) -> Self {
+    pub fn parse(text: &str) -> Self {
         let mut map = HashMap::new();
         for line in text.lines() {
             if line.starts_with(";;;") || line.trim().is_empty() {
@@ -78,7 +78,11 @@ impl G2p {
                 None => return None,
             }
         }
-        if out.is_empty() { None } else { Some(out) }
+        if out.is_empty() {
+            None
+        } else {
+            Some(out)
+        }
     }
 
     /// Strip the stress digit from a vowel phoneme ("AH0" -> "AH").

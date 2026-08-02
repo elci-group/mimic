@@ -30,7 +30,7 @@ the P1 alignment gate fails.";
 
 /// CMUdict is embedded at compile time: no runtime path fragility.
 fn default_g2p() -> G2p {
-    G2p::from_str(include_str!("../assets/cmudict.dict"))
+    G2p::parse(include_str!("../assets/cmudict.dict"))
 }
 
 #[derive(Default)]
@@ -56,9 +56,9 @@ fn parse_args(args: &[String]) -> Result<Args, String> {
                 i += 1;
             }
             flag => {
-                let val = args
-                    .get(i + 1)
-                    .ok_or_else(|| format!("missing value for {flag}"))?;
+                let val = args.get(i + 1).ok_or_else(|| {
+                    format!("missing value for {flag}; try again with {flag} VALUE")
+                })?;
                 match flag {
                     "--db" => a.db = Some(PathBuf::from(val)),
                     "--text" => a.text = Some(val.clone()),
@@ -68,7 +68,11 @@ fn parse_args(args: &[String]) -> Result<Args, String> {
                     "--corpora" => a.corpora = Some(PathBuf::from(val)),
                     "--gates" => a.gates = Some(PathBuf::from(val)),
                     "--addr" => a.addr = Some(val.clone()),
-                    other => return Err(format!("unknown flag: {other}")),
+                    other => {
+                        return Err(format!(
+                            "unknown flag: {other}; run `mimic`, then try again"
+                        ))
+                    }
                 }
                 i += 2;
             }
@@ -78,7 +82,9 @@ fn parse_args(args: &[String]) -> Result<Args, String> {
 }
 
 fn open_store(a: &Args) -> Result<MimicStore, String> {
-    let db = a.db.clone().ok_or("missing --db PATH")?;
+    let db =
+        a.db.clone()
+            .ok_or("missing --db PATH; try again with --db PATH")?;
     let audio_dir = db.with_extension("audio");
     MimicStore::open(db, audio_dir).map_err(|e| e.to_string())
 }
@@ -93,7 +99,10 @@ fn run() -> Result<(), String> {
 
     match cmd.as_str() {
         "ingest" => {
-            let text = a.text.clone().ok_or("missing --text")?;
+            let text = a
+                .text
+                .clone()
+                .ok_or("missing --text; try again with --text TEXT")?;
             let mut store = open_store(&a)?;
             let g2p = default_g2p();
             let (audio, provider): (mimic::audio::WavAudio, String) = match &a.wav {
@@ -109,9 +118,8 @@ fn run() -> Result<(), String> {
                     )
                 }
             };
-            let report =
-                pipeline::ingest(&mut store, &text, &audio, &voice, &provider, Some(&g2p))
-                    .map_err(|e| e.to_string())?;
+            let report = pipeline::ingest(&mut store, &text, &audio, &voice, &provider, Some(&g2p))
+                .map_err(|e| e.to_string())?;
             store.save().map_err(|e| e.to_string())?;
             println!(
                 "ingested \"{}\" ({:.0} ms): {} phrase + {} word + {} phoneme units ({} unresolved words)",
@@ -124,7 +132,10 @@ fn run() -> Result<(), String> {
             );
         }
         "compose" => {
-            let text = a.text.clone().ok_or("missing --text")?;
+            let text = a
+                .text
+                .clone()
+                .ok_or("missing --text; try again with --text TEXT")?;
             let mut store = open_store(&a)?;
             let g2p = default_g2p();
             let tts = MockTts::new();
@@ -138,7 +149,10 @@ fn run() -> Result<(), String> {
             )
             .map_err(|e| e.to_string())?;
             store.save().map_err(|e| e.to_string())?;
-            let out = a.out.clone().unwrap_or_else(|| PathBuf::from("mimic_out.wav"));
+            let out = a
+                .out
+                .clone()
+                .unwrap_or_else(|| PathBuf::from("mimic_out.wav"));
             audio::write_wav(&out_audio, &out).map_err(|e| e.to_string())?;
             println!("composed \"{}\"", units::normalize(&text));
             println!(
@@ -171,7 +185,10 @@ fn run() -> Result<(), String> {
             );
         }
         "lookup" => {
-            let text = a.text.clone().ok_or("missing --text")?;
+            let text = a
+                .text
+                .clone()
+                .ok_or("missing --text; try again with --text TEXT")?;
             let store = open_store(&a)?;
             let norm = units::normalize(&text);
             let mut found = 0usize;
@@ -205,15 +222,27 @@ fn run() -> Result<(), String> {
         "serve" => {
             let store = open_store(&a)?;
             let g2p = default_g2p();
-            let addr = a.addr.clone().unwrap_or_else(|| "127.0.0.1:8787".to_string());
+            let addr = a
+                .addr
+                .clone()
+                .unwrap_or_else(|| "127.0.0.1:8787".to_string());
             let rt = tokio::runtime::Runtime::new().map_err(|e| e.to_string())?;
             rt.block_on(mimic::server::serve(&addr, store, g2p))
                 .map_err(|e| e.to_string())?;
         }
         "eval" => {
-            let corpora = a.corpora.clone().unwrap_or_else(|| PathBuf::from("assets/corpora"));
-            let gates = a.gates.clone().unwrap_or_else(|| PathBuf::from("eval/gates.txt"));
-            let out_dir = a.out.clone().unwrap_or_else(|| PathBuf::from("eval/reports"));
+            let corpora = a
+                .corpora
+                .clone()
+                .unwrap_or_else(|| PathBuf::from("assets/corpora"));
+            let gates = a
+                .gates
+                .clone()
+                .unwrap_or_else(|| PathBuf::from("eval/gates.txt"));
+            let out_dir = a
+                .out
+                .clone()
+                .unwrap_or_else(|| PathBuf::from("eval/reports"));
             let g2p = default_g2p();
             let report = meval::run(&corpora, &g2p).map_err(|e| e.to_string())?;
             let md = meval::to_markdown(&report);
@@ -233,7 +262,10 @@ fn run() -> Result<(), String> {
                 println!("{m}");
             }
             if a.gate && !gate.pass {
-                return Err("P1 gate failed".to_string());
+                return Err(
+                    "P1 gate failed; inspect the report, resolve each failed metric, and try again"
+                        .to_string(),
+                );
             }
         }
         _ => return Err(USAGE.to_string()),

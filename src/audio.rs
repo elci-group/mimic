@@ -156,14 +156,20 @@ pub fn parse_wav(data: &[u8]) -> Result<WavAudio> {
         }
         pos += size + (size & 1);
     }
-    let (format, channels, rate, bits) = fmt.ok_or_else(|| wav_err("missing fmt chunk"))?;
+    let (format, channels, rate, bits) =
+        fmt.ok_or_else(|| wav_err("missing fmt chunk; provide a valid WAV file and try again"))?;
     if format != 1 {
-        return Err(wav_err("only PCM (format 1) supported"));
+        return Err(wav_err(
+            "only PCM (format 1) supported; convert the source to PCM",
+        ));
     }
     if bits != 16 {
-        return Err(wav_err("only 16-bit samples supported"));
+        return Err(wav_err(
+            "only 16-bit samples supported; convert the source to 16-bit",
+        ));
     }
-    let raw = raw.ok_or_else(|| wav_err("missing data chunk"))?;
+    let raw =
+        raw.ok_or_else(|| wav_err("missing data chunk; provide a valid WAV file and try again"))?;
     let samples = match channels {
         1 => raw,
         2 => raw
@@ -230,11 +236,11 @@ pub fn splice(parts: &[WavAudio], crossfade_ms: u32) -> Result<WavAudio> {
             continue;
         }
         let tail = out.split_off(out.len() - f);
-        for i in 0..f {
+        for (i, tail_sample) in tail.iter().enumerate().take(f) {
             let t = (i as f64 + 0.5) / f as f64;
             let g_out = 0.5 * (1.0 + (std::f64::consts::PI * t).cos());
             let g_in = 1.0 - g_out;
-            let mixed = tail[i] as f64 * g_out + part.samples[i] as f64 * g_in;
+            let mixed = *tail_sample as f64 * g_out + part.samples[i] as f64 * g_in;
             out.push(mixed.round().clamp(i16::MIN as f64, i16::MAX as f64) as i16);
         }
         out.extend_from_slice(&part.samples[f..]);

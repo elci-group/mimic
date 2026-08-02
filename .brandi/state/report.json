@@ -1,0 +1,21 @@
+{
+  "root": "/home/sal/mimic",
+  "timestamp": "2026-07-23T10:13:41.691186422+01:00",
+  "scores": {
+    "overall": 100,
+    "by_kind": {
+      "doc": 100,
+      "repo_doc": 100,
+      "ui_string": 100
+    },
+    "errors": 0,
+    "warnings": 0,
+    "infos": 0
+  },
+  "surface_counts": {
+    "doc": 325,
+    "repo_doc": 125,
+    "ui_string": 202
+  },
+  "findings": []
+}

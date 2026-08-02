@@ -1,0 +1,25 @@
+[watch]
+path = "."
+recursive = true
+ignore_file = ".kaptainignore"
+
+[cluster]
+window = 8
+
+[version_thresholds]
+minor = 0.55
+patch = 0.12
+
+[test]
+command = "scripts/ci.sh"
+required = true
+
+[staging]
+mode = "cluster"
+
+[push]
+enabled = false
+branch = "main"
+
+[capabilities]
+network_push = false

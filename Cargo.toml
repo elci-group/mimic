@@ -6,12 +6,19 @@ description = "Phonetic memoization layer for TTS: a semantic-aware speech cache
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-padagonia = { path = "../padagonia" }
-thiserror = "1"
+padagonia = { git = "https://github.com/elci-group/padagonia", rev = "324882311dc75a5c6ecad3c4e0ed18fe458942b2" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "time"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "time", "signal"] }
 axum = "0.7"
+sha2 = "0.10"
+toml = "0.8"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 [dev-dependencies]
 tempfile = "3"
+
+[[bin]]
+name = "mimicd"
+path = "src/bin/mimicd.rs"

@@ -23,7 +23,12 @@ fn http_err(msg: impl Into<String>) -> MimicError {
 
 /// POST `body` to `url` with the given headers. `url` must be
 /// `http://host[:port]/path?query`.
-pub fn post(url: &str, headers: &[(&str, &str)], body: &[u8], timeout: Duration) -> Result<HttpResponse> {
+pub fn post(
+    url: &str,
+    headers: &[(&str, &str)],
+    body: &[u8],
+    timeout: Duration,
+) -> Result<HttpResponse> {
     let (host, port, path) = parse_url(url)?;
     let mut stream = TcpStream::connect((host, port))
         .map_err(|e| http_err(format!("connect {host}:{port}: {e}")))?;
@@ -53,9 +58,11 @@ pub fn post(url: &str, headers: &[(&str, &str)], body: &[u8], timeout: Duration)
 }
 
 fn parse_url(url: &str) -> Result<(&str, u16, &str)> {
-    let rest = url
-        .strip_prefix("http://")
-        .ok_or_else(|| http_err(format!("only http:// URLs supported (add TLS to enable https): {url}")))?;
+    let rest = url.strip_prefix("http://").ok_or_else(|| {
+        http_err(format!(
+            "only http:// URLs supported (add TLS to enable https): {url}"
+        ))
+    })?;
     let (authority, path) = match rest.find('/') {
         Some(i) => (&rest[..i], &rest[i..]),
         None => (rest, "/"),

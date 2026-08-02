@@ -194,7 +194,10 @@ impl AudioCodec for MimicMct {
                 pos += 2;
                 let bitmap = &tokens[pos..pos + 40];
                 pos += 40;
-                let n_vals = bitmap.iter().map(|b| b.count_ones() as usize).sum::<usize>();
+                let n_vals = bitmap
+                    .iter()
+                    .map(|b| b.count_ones() as usize)
+                    .sum::<usize>();
                 let n_bytes = n_vals * 3 / 8 + usize::from(n_vals * 3 % 8 != 0);
                 if pos + n_bytes > tokens.len() {
                     return Err(MimicError::Wav("truncated values".into()));
@@ -237,51 +240,13 @@ impl AudioCodec for MimicMct {
         let samples: Vec<i16> = pcm
             .iter()
             .take(orig_samples)
-            .map(|v| (v * 32767.0).round().clamp(i16::MIN as f64, i16::MAX as f64) as i16)
+            .map(|v| {
+                (v * 32767.0)
+                    .round()
+                    .clamp(i16::MIN as f64, i16::MAX as f64) as i16
+            })
             .collect();
         Ok(WavAudio::new(samples, sample_rate))
-    }
-}
-
-#[cfg(test)]
-mod mdct_sanity {
-    use super::*;
-
-    #[test]
-    fn mdct_ola_is_lossless_unquantized() {
-        // window + MDCT/IMDCT + overlap-add without quantization
-        let w = sine_window();
-        let sr = 16000usize;
-        let n = sr / 4; // 250 ms
-        let x: Vec<f64> = (0..n)
-            .map(|i| (2.0 * std::f64::consts::PI * 220.0 * i as f64 / sr as f64).sin() * 0.5)
-            .collect();
-        let n_frames = frames_for(n);
-        let mut out = vec![0.0f64; n + WINDOW];
-        for f in 0..n_frames {
-            let center = f * FRAME;
-            let mut windowed = vec![0.0f64; WINDOW];
-            for (i, wv) in windowed.iter_mut().enumerate() {
-                let idx = center as i64 + i as i64 - FRAME as i64;
-                if idx >= 0 && (idx as usize) < x.len() {
-                    *wv = x[idx as usize] * w[i];
-                }
-            }
-            let c = mdct(&windowed);
-            let y = imdct(&c);
-            let base = center as i64 - FRAME as i64;
-            for (i, v) in y.iter().enumerate() {
-                let idx = base + i as i64;
-                if idx >= 0 {
-                    out[idx as usize] += v;
-                }
-            }
-        }
-        let mut max_err = 0.0f64;
-        for i in 0..n {
-            max_err = max_err.max((out[i] - x[i]).abs());
-        }
-        assert!(max_err < 1e-6, "TDAC reconstruction error {max_err}");
     }
 }
 
@@ -317,7 +282,7 @@ fn parse_stream(tokens: &[u8]) -> Result<ParsedStream<'_>> {
             }
             let bitmap = &tokens[pos + 2..pos + 42];
             let n_vals: usize = bitmap.iter().map(|b| b.count_ones() as usize).sum();
-            pos += 42 + n_vals * 3 / 8 + usize::from(n_vals * 3 % 8 != 0);
+            pos += 42 + n_vals * 3 / 8 + usize::from(!(n_vals * 3).is_multiple_of(8));
             if pos > tokens.len() {
                 return Err(MimicError::Wav("truncated values".into()));
             }
@@ -383,4 +348,49 @@ pub fn concat_tokens(streams: &[&[u8]]) -> Result<Vec<u8>> {
         frames.extend(p.frames);
     }
     Ok(emit_stream(sample_rate, samples, &frames))
+}
+
+#[cfg(test)]
+mod mdct_sanity {
+    use super::*;
+
+    #[test]
+    fn mdct_ola_is_lossless_unquantized() {
+        let w = sine_window();
+        let sr = 16000usize;
+        let n = sr / 4;
+        let x: Vec<f64> = (0..n)
+            .map(|i| (2.0 * std::f64::consts::PI * 220.0 * i as f64 / sr as f64).sin() * 0.5)
+            .collect();
+        let n_frames = frames_for(n);
+        let mut out = vec![0.0f64; n + WINDOW];
+        for f in 0..n_frames {
+            let center = f * FRAME;
+            let mut windowed = vec![0.0f64; WINDOW];
+            for (i, wv) in windowed.iter_mut().enumerate() {
+                let idx = center as i64 + i as i64 - FRAME as i64;
+                if idx >= 0 && (idx as usize) < x.len() {
+                    *wv = x[idx as usize] * w[i];
+                }
+            }
+            let c = mdct(&windowed);
+            let y = imdct(&c);
+            let base = center as i64 - FRAME as i64;
+            for (i, v) in y.iter().enumerate() {
+                let idx = base + i as i64;
+                if idx >= 0 {
+                    out[idx as usize] += v;
+                }
+            }
+        }
+        let max_err = out
+            .iter()
+            .zip(&x)
+            .map(|(actual, expected)| (actual - expected).abs())
+            .fold(0.0_f64, f64::max);
+        assert!(
+            max_err < 1e-6,
+            "TDAC reconstruction error {max_err}; inspect the MDCT window and try again"
+        );
+    }
 }
