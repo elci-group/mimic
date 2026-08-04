@@ -11,15 +11,15 @@ minor = 0.55
 patch = 0.12
 
 [test]
-command = "cargo test --lib"
-required = false
+command = "scripts/ci.sh"
+required = true
 
 [staging]
 mode = "cluster"
 
 [push]
-enabled = true
+enabled = false
 branch = "main"
 
 [capabilities]
-network_push = true
+network_push = false
