@@ -161,8 +161,14 @@ fn eval_harness_smoke() {
     // experimental P4 codec release gate. Production lossless quality is
     // enforced separately by plan_tests.rs.
     assert!(!gate.messages.is_empty());
-    assert!(gate.messages.iter().any(|message| message.contains("boundary")));
-    assert!(gate.messages.iter().any(|message| message.contains("codec")));
+    assert!(gate
+        .messages
+        .iter()
+        .any(|message| message.contains("boundary")));
+    assert!(gate
+        .messages
+        .iter()
+        .any(|message| message.contains("codec")));
 
     // report renderers don't panic and contain the key rows
     let md = meval::to_markdown(&report);
