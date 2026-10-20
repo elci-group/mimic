@@ -238,3 +238,22 @@ the cache architecture and the unit-selection/stitching stack, not models.
 - [Local AI Master — Best local TTS 2026](https://localaimaster.com/blog/best-local-tts-models) (Kokoro-82M, Chatterbox licensing/quality)
 - [F5-TTS paper (arXiv:2410.06885)](https://arxiv.org/html/2410.06885v3) (flow-matching DiT TTS; infill capability relevant to P5)
 - [EntangleCodec (arXiv:2606.02739)](https://arxiv.org/html/2606.02739v1) and [PairAlign (arXiv:2605.06582)](https://arxiv.org/html/2605.06582v2) — 2026 codec/tokenizer landscape surveys (EnCodec, DAC, WavTokenizer, Mimi, XCodec2, SemantiCodec baselines)
+
+## PADAGONIA enterprise integration
+
+See [`/home/sal/padagonia/docs/enterprise-integration-directives.md`](../padagonia/docs/enterprise-integration-directives.md).
+
+- [ ] `storage_admission`: commit graph metadata only after the audio manifest,
+  hash, and external object reference are durable.
+- [ ] `unit_index`: version AudioUnit, phonetic decomposition, embedding,
+  provider, and quality schemas; rebuild indexes deterministically on open.
+- [ ] `semantic_retrieval`: use vector search for candidates and exact lookup
+  for content hashes; expose stale and partial-cache indicators.
+- [ ] `composition_history`: record selected units, joins, synth misses, and
+  provider provenance without storing raw secrets.
+- [ ] `recovery`: verify graph/manifest consistency after crash, replay, and
+  snapshot restore; quarantine orphaned audio references.
+
+Exit gate: cache-hit behavior, composition output, and provider-call counts are
+unchanged across restart and safe replay, with bounded vector dimensions and no
+orphaned immutable manifests.

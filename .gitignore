@@ -7,3 +7,10 @@
 *.audio/
 *.wav
 
+.azusa/
+.kaptaind/
+.lwoodz/
+.uni/
+.traci/
+.orb
+*.log
